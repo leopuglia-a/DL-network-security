@@ -50,7 +50,6 @@ def f1(y_true, y_pred):
 
 
 batch_size = 128
-# 32 // 64 // 128
 epochs = 30
 
 # read in data using pandas
@@ -99,6 +98,156 @@ for train_index, test_index in kf.split(X, Y):
     model.add(Dense(512, activation="relu", input_dim=(127)))
     model.add(Dense(256, activation="relu"))
     model.add(Dense(128, activation="relu"))
+    model.add(Dense(5, activation="softmax"))
+    model.summary()
+
+    # compile model using mse as a measure of model performance
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1]
+    )
+
+    # train model
+    model.fit(
+        X_train,
+        Y_train,
+        batch_size=batch_size,
+        verbose=1,
+        epochs=epochs,
+        validation_split=0.3,
+    )
+
+    scores = model.evaluate(X_test, Y_test, verbose=1)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+
+cvscores = []
+
+for train_index, test_index in kf.split(X, Y):
+    print("TRAIN:", train_index, "TEST:", test_index)
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+    # create model
+    model = Sequential()
+
+    # add model layers
+    model.add(Dense(256, activation="relu", input_dim=(127)))
+    model.add(Dense(128, activation="relu"))
+    model.add(Dense(64, activation="relu"))
+    model.add(Dense(32, activation="relu"))
+    model.add(Dense(5, activation="softmax"))
+    model.summary()
+
+    # compile model using mse as a measure of model performance
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1]
+    )
+
+    # train model
+    model.fit(
+        X_train,
+        Y_train,
+        batch_size=batch_size,
+        verbose=1,
+        epochs=epochs,
+        validation_split=0.3,
+    )
+
+    scores = model.evaluate(X_test, Y_test, verbose=1)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+
+cvscores = []
+
+for train_index, test_index in kf.split(X, Y):
+    print("TRAIN:", train_index, "TEST:", test_index)
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+    # create model
+    model = Sequential()
+
+    # add model layers
+    model.add(Dense(512, activation="relu", input_dim=(127)))
+    model.add(Dense(256, activation="relu"))
+    model.add(Dense(128, activation="relu"))
+    model.add(Dense(64, activation="relu"))
+    model.add(Dense(5, activation="softmax"))
+    model.summary()
+
+    # compile model using mse as a measure of model performance
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1]
+    )
+
+    # train model
+    model.fit(
+        X_train,
+        Y_train,
+        batch_size=batch_size,
+        verbose=1,
+        epochs=epochs,
+        validation_split=0.3,
+    )
+
+    scores = model.evaluate(X_test, Y_test, verbose=1)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+
+cvscores = []
+
+for train_index, test_index in kf.split(X, Y):
+    print("TRAIN:", train_index, "TEST:", test_index)
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+    # create model
+    model = Sequential()
+
+    # add model layers
+    model.add(Dense(512, activation="relu", input_dim=(127)))
+    model.add(Dense(256, activation="relu"))
+    model.add(Dense(128, activation="relu"))
+    model.add(Dense(64, activation="relu"))
+    model.add(Dense(32, activation="relu"))
+    model.add(Dense(5, activation="softmax"))
+    model.summary()
+
+    # compile model using mse as a measure of model performance
+    model.compile(
+        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1]
+    )
+
+    # train model
+    model.fit(
+        X_train,
+        Y_train,
+        batch_size=batch_size,
+        verbose=1,
+        epochs=epochs,
+        validation_split=0.3,
+    )
+
+    scores = model.evaluate(X_test, Y_test, verbose=1)
+    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+
+print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+
+cvscores = []
+
+for train_index, test_index in kf.split(X, Y):
+    print("TRAIN:", train_index, "TEST:", test_index)
+    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+    Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+    # create model
+    model = Sequential()
+
+    # add model layers
+    model.add(Dense(1024, activation="relu", input_dim=(127)))
+    model.add(Dense(512, activation="relu"))
+    model.add(Dense(256, activation="relu"))
+    model.add(Dense(128, activation="relu"))
+    model.add(Dense(64, activation="relu"))
     model.add(Dense(5, activation="softmax"))
     model.summary()
 
