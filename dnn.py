@@ -1,5 +1,6 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+import warnings
 import pandas as pd
 import numpy as np
 import tensorflow as tf
@@ -74,8 +75,6 @@ dummy = pd.get_dummies(Y["PKT_CLASS"])
 Y = Y.drop(columns=["PKT_CLASS"])
 Y = pd.concat([dummy], axis=1)
 
-print(X.head())
-print(Y.head())
 
 # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
@@ -85,13 +84,16 @@ np.random.seed(seed)
 
 kf = KFold(n_splits=5, shuffle=True, random_state=seed)
 kf.get_n_splits(X)
+
+count_kfold = 1
 cvscores = []
 
 for train_index, test_index in kf.split(X, Y):
-    print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
     # create model
+
+    print("kfold: ", count_kfold)
     model = Sequential()
 
     # add model layers
@@ -111,23 +113,27 @@ for train_index, test_index in kf.split(X, Y):
         X_train,
         Y_train,
         batch_size=batch_size,
-        verbose=1,
+        verbose=0,
         epochs=epochs,
-        validation_split=0.3,
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    scores = model.evaluate(X_test, Y_test, verbose=0)
+    print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    count_kfold += 1
 
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+print("\n\n\n ========= New Model =========")
 
+count_kfold = 1
 cvscores = []
 
 for train_index, test_index in kf.split(X, Y):
-    print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
     # create model
+
+    print("kfold: ", count_kfold)
     model = Sequential()
 
     # add model layers
@@ -148,23 +154,25 @@ for train_index, test_index in kf.split(X, Y):
         X_train,
         Y_train,
         batch_size=batch_size,
-        verbose=1,
+        verbose=0,
         epochs=epochs,
-        validation_split=0.3,
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    scores = model.evaluate(X_test, Y_test, verbose=0)
+    print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    count_kfold += 1
 
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
-
+count_kfold = 1
 cvscores = []
 
 for train_index, test_index in kf.split(X, Y):
-    print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
     # create model
+
+    print("kfold: ", count_kfold)
     model = Sequential()
 
     # add model layers
@@ -185,23 +193,25 @@ for train_index, test_index in kf.split(X, Y):
         X_train,
         Y_train,
         batch_size=batch_size,
-        verbose=1,
+        verbose=0,
         epochs=epochs,
-        validation_split=0.3,
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    scores = model.evaluate(X_test, Y_test, verbose=0)
+    print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    count_kfold += 1
 
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
-
+count_kfold = 1
 cvscores = []
 
 for train_index, test_index in kf.split(X, Y):
-    print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
     # create model
+
+    print("kfold: ", count_kfold)
     model = Sequential()
 
     # add model layers
@@ -223,23 +233,25 @@ for train_index, test_index in kf.split(X, Y):
         X_train,
         Y_train,
         batch_size=batch_size,
-        verbose=1,
+        verbose=0,
         epochs=epochs,
-        validation_split=0.3,
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    scores = model.evaluate(X_test, Y_test, verbose=0)
+    print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    count_kfold += 1
 
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
-
+count_kfold = 1
 cvscores = []
 
 for train_index, test_index in kf.split(X, Y):
-    print("TRAIN:", train_index, "TEST:", test_index)
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
     # create model
+
+    print("kfold: ", count_kfold)
     model = Sequential()
 
     # add model layers
@@ -261,12 +273,12 @@ for train_index, test_index in kf.split(X, Y):
         X_train,
         Y_train,
         batch_size=batch_size,
-        verbose=1,
+        verbose=0,
         epochs=epochs,
-        validation_split=0.3,
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    scores = model.evaluate(X_test, Y_test, verbose=0)
+    print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
-
-print("%.2f%% (+/- %.2f%%)" % (np.mean(cvscores), np.std(cvscores)))
+    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    count_kfold += 1
