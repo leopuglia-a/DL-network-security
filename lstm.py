@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import math
-
+import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -19,7 +19,8 @@ from keras.layers import Dense, Embedding, LSTM, Dropout
 from keras.optimizers import RMSprop
 from keras.preprocessing.sequence import TimeseriesGenerator
 from keras import backend as K
-
+from keras.utils import plot_model
+from keras.callbacks import CSVLogger
 
 def f1(y_true, y_pred):
     def recall(y_true, y_pred):
@@ -55,7 +56,7 @@ def f1(y_true, y_pred):
 
 history_length = 50
 batch_size = 128
-epochs = 10
+epochs = 3
 n_features = 127
 
 # read in data using pandas
@@ -79,18 +80,18 @@ dummy = pd.get_dummies(Y["PKT_CLASS"])
 Y = Y.drop(columns=["PKT_CLASS"])
 Y = pd.concat([dummy], axis=1)
 
-
 # KFOLD
-seed = 4
+seed = 7
 np.random.seed(seed)
 
 # Use special splitter for time series
 # Explanation: https://i.stack.imgur.com/fXZ6k.png
-kf = TimeSeriesSplit(n_splits=5)
+kf = TimeSeriesSplit(n_splits=2)
 kf.get_n_splits(X)
 
 count_kfold = 1
 cvscores = []
+csv_logger = CSVLogger('lstm.csv', append=True, separator=';')
 
 for train_index, test_index in kf.split(X, Y):
 
@@ -105,7 +106,8 @@ for train_index, test_index in kf.split(X, Y):
 
     # X_train and Y_train out of sync!
     Y_train = np.roll(Y_train, 1, axis = 0)
-
+    Y_test = np.roll(Y_test, 1, axis = 0)
+    
     # Convert the data to a 3d array
     generator = TimeseriesGenerator(X_train, Y_train, length = history_length, batch_size = batch_size)
 
@@ -124,16 +126,39 @@ for train_index, test_index in kf.split(X, Y):
     # So in order to use the whole dataset we need to calculate the exact number of steps per epoch in order to fully pass the entire dataset each epoch
     steps_epoch = math.floor((len(X_train) - history_length)/batch_size)
 
+    # csv_logger = CSVLogger('lstm.csv', append=True, separator=';')
+
     # train model
-    model.fit_generator(
+    hist = model.fit_generator(
         generator,
         verbose=1,
         steps_per_epoch=steps_epoch,
         epochs=epochs,
+        callbacks=[csv_logger]
     )
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
+    generator = TimeseriesGenerator(X_test, Y_test, length = history_length, batch_size = batch_size)
+    scores = model.evaluate_generator(generator, verbose=1)
     print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
     print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
     count_kfold += 1
+
+
+plot_model(model, to_file='model.png')
+
+plt.plot(hist.history['accuracy'])
+plt.title('Model accuracy')
+plt.ylabel('Accuruacy')
+plt.xlabel('Epoch')
+plt.legend(['acc'], loc='upper right')
+plt.savefig('acc.png')
+# plt.show()
+
+plt.plot(hist.history['f1'])
+plt.title('Model f1')
+plt.ylabel('f1')
+plt.xlabel('Epoch')
+plt.legend(['f1'], loc='upper right')
+plt.savefig('f1.png')
+# plt.show()
