@@ -55,8 +55,8 @@ def f1(y_true, y_pred):
 
 
 history_length = 50
-batch_size = 128
-epochs = 3
+batch_size = 256
+epochs = 10
 n_features = 127
 
 # read in data using pandas
@@ -86,7 +86,7 @@ np.random.seed(seed)
 
 # Use special splitter for time series
 # Explanation: https://i.stack.imgur.com/fXZ6k.png
-kf = TimeSeriesSplit(n_splits=2)
+kf = TimeSeriesSplit(n_splits=5)
 kf.get_n_splits(X)
 
 count_kfold = 1
@@ -118,6 +118,7 @@ for train_index, test_index in kf.split(X, Y):
     # add model layers
     model.add(LSTM(units=200, dropout=0.2, recurrent_dropout=0.2, input_shape=(history_length, n_features)))
     model.add(Dense(5,activation='softmax'))
+    model.summary()
 
     # compile model using mse as a measure of model performance
     model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1])
@@ -138,7 +139,7 @@ for train_index, test_index in kf.split(X, Y):
     )
 
     generator = TimeseriesGenerator(X_test, Y_test, length = history_length, batch_size = batch_size)
-    scores = model.evaluate_generator(generator, verbose=1)
+    scores = model.evaluate_generator(generator, verbose=0)
     print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
     print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
