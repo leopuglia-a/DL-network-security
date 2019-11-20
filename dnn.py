@@ -4,6 +4,7 @@ import pandas as pd
 from keras import backend as K
 from keras.layers import Dense
 from keras.models import Sequential
+from sklearn import preprocessing
 from sklearn.model_selection import KFold
 import utils
 import datetime
@@ -23,7 +24,7 @@ def f1(y_true, y_pred):
         possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
         recall = true_positives / (possible_positives + K.epsilon())
         return recall
-    
+
     def precision(y_true, y_pred):
         """Precision metric.
 
@@ -36,7 +37,7 @@ def f1(y_true, y_pred):
         predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
         precision = true_positives / (predicted_positives + K.epsilon())
         return precision
-    
+
     precision = precision(y_true, y_pred)
     recall = recall(y_true, y_pred)
     return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
@@ -49,12 +50,21 @@ epochs = 30
 df = pd.read_csv("dataset/full-dataset.csv", low_memory=False)
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
+df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
-X = df.drop(['Label', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+
+# Drop rows that have NA, NaN or Inf
+df.dropna(inplace=True)
+indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+df = df[indices_to_keep].astype(np.float64)
+
+# Remove the Label output
+X = df.drop(['Label'], axis=1)
 
 # create a dataframe with only the target column as dummy variables
-Y = df['Label'].apply(lambda x: utils.to_bin(x))
+Y = df['Label']
 
 # KFOLD
 seed = 7
@@ -68,26 +78,55 @@ f1_scores = []
 for train_index, test_index in kf.split(X, Y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+
+    # 1. Standardize as variáveis de X_train e X_test usando preprocessing.scale: https://scikit-learn.org/stable/modules/preprocessing.html
+    # É sempre importante fazer as duas separadas pra evitar que o training tenha alguma ação sobre o testing
+    X_train = preprocessing.scale(X_train) # O ERRO ESTÁ AQUI!
+    X_test = preprocessing.scale(X_test)
+
     # create model
-    
     print("kfold: ", count_kfold)
     model = Sequential()
-    
+
     # add model layers
-    model.add(Dense(2048, activation="relu", input_dim=83))
-    model.add(Dense(1024, activation="relu"))
-    model.add(Dense(512, activation="relu"))
-    model.add(Dense(256, activation="relu"))
-    model.add(Dense(128, activation="relu"))
-    model.add(Dense(64, activation="relu"))
+    model.add(Dense(2048, input_dim=83, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))) # 2. Regularization é uma forma de reduzir os weights resultantes, diminuindo a chance de overfit
+    model.add(BatchNormalization()) # 3. Batch norm é uma forma de standizar os pesos resultantes da layer pra melhorar a convergência
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3)) # 4. Dropout é uma forma de evitar overfitting, adicionei camadas com 30% de dropout na rede inteira
+
+    model.add(Dense(1024, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3))
+
+    model.add(Dense(512, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3))
+
+    model.add(Dense(256, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3))
+
+    model.add(Dense(128, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3))
+
+    model.add(Dense(64, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(BatchNormalization())
+    model.add(Activation('relu'))
+    model.add(Dropout(0.3))
+
     model.add(Dense(1, activation="sigmoid"))
     model.summary()
-    
+
     # compile model using mse as a measure of model performance
     model.compile(
         loss="binary_crossentropy", optimizer="adam", metrics=[f1]
     )
-    
+
     # train model
     model.fit(
         X_train,
@@ -96,7 +135,7 @@ for train_index, test_index in kf.split(X, Y):
         verbose=1,
         epochs=utils.epochs,
     )
-    
+
     scores = model.evaluate(X_test, Y_test, verbose=1)
     print(model.metrics_names)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
