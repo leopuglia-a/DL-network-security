@@ -8,6 +8,9 @@ from sklearn import preprocessing
 from sklearn.model_selection import KFold
 import utils
 import datetime
+from keras.layers.normalization import BatchNormalization
+from keras.layers.core import Activation, Dropout
+from keras.regularizers import l2
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 
@@ -43,9 +46,6 @@ def f1(y_true, y_pred):
     return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
 
 
-batch_size = 128
-epochs = 30
-
 # read in data using pandas
 df = pd.read_csv("dataset/full-dataset.csv", low_memory=False)
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
@@ -54,6 +54,8 @@ df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
 df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float16)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float64)
 
 # Drop rows that have NA, NaN or Inf
 df.dropna(inplace=True)
@@ -63,7 +65,7 @@ df = df[indices_to_keep].astype(np.float64)
 # Remove the Label output
 X = df.drop(['Label'], axis=1)
 
-# create a dataframe with only the target column as dummy variables
+# create a dataframe with only the target column
 Y = df['Label']
 
 # KFOLD
@@ -72,17 +74,19 @@ np.random.seed(seed)
 
 kf = KFold(n_splits=5, shuffle=True, random_state=seed)
 kf.get_n_splits(X)
-
 count_kfold = 1
 f1_scores = []
+
+scaler = preprocessing.StandardScaler()
+
 for train_index, test_index in kf.split(X, Y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
 
     # 1. Standardize as variáveis de X_train e X_test usando preprocessing.scale: https://scikit-learn.org/stable/modules/preprocessing.html
     # É sempre importante fazer as duas separadas pra evitar que o training tenha alguma ação sobre o testing
-    X_train = preprocessing.scale(X_train) # O ERRO ESTÁ AQUI!
-    X_test = preprocessing.scale(X_test)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.fit_transform(X_test)
 
     # create model
     print("kfold: ", count_kfold)
