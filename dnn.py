@@ -144,7 +144,7 @@ for train_index, test_index in kf.split(X, Y):
 
     scores = model.evaluate(X_test, Y_test, verbose=1)
     print(model.metrics_names)
-    print("%s: %d" % (model.metrics_names[1], scores[1]))
+    print("%s: %.4f" % (model.metrics_names[1], scores[1]))
     f1_scores.append(scores[1])
     count_kfold += 1
 
