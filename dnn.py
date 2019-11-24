@@ -89,6 +89,8 @@ for train_index, test_index in kf.split(X, Y):
     X_test = scaler.fit_transform(X_test)
 
     # create model
+    print("\n\n")
+    print("========================")
     print("kfold: ", count_kfold)
     model = Sequential()
 
@@ -142,9 +144,10 @@ for train_index, test_index in kf.split(X, Y):
 
     scores = model.evaluate(X_test, Y_test, verbose=1)
     print(model.metrics_names)
-    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
-    f1_scores = scores[1]
+    print("%s: %d" % (model.metrics_names[1], scores[1]))
+    f1_scores.append(scores[1])
     count_kfold += 1
+
 
 final_score = sum(f1_scores) / 5.0
 print("============= FINAL SCORE ============")
