@@ -97,13 +97,15 @@ count_kfold = 1
 cvscores = []
 csv_logger = CSVLogger('gru.csv', append=True, separator=';')
 
+scaler = preprocessing.StandardScaler()
+
 for train_index, test_index in kf.split(X, Y):
 
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
 
-    X_train = preprocessing.scale(X_train)
-    X_test = preprocessing.scale(X_test)
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.fit_transform(X_test)
 
     # Get the numpy array
     #X_train = X_train.values
