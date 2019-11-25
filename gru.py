@@ -69,13 +69,13 @@ df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
 df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
-df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float16)
-df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float64)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
 # Drop rows that have NA, NaN or Inf
 df.dropna(inplace=True)
 indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-df = df[indices_to_keep].astype(np.float64)
+df = df[indices_to_keep].astype(np.float32)
 
 # Remove the Label output
 X = df.drop(['Label'], axis=1)
@@ -101,16 +101,19 @@ for train_index, test_index in kf.split(X, Y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
 
+    X_train = preprocessing.scale(X_train)
+    X_test = preprocessing.scale(X_test)
+
     # Get the numpy array
-    X_train = X_train.values
-    X_test = X_test.values
+    #X_train = X_train.values
+    #X_test = X_test.values
     Y_train = Y_train.values
     Y_test = Y_test.values
 
     # X_train and Y_train out of sync!
     Y_train = np.roll(Y_train, 1, axis = 0)
     Y_test = np.roll(Y_test, 1, axis = 0)
-    
+
     # Convert the data to a 3d array
     generator = TimeseriesGenerator(X_train, Y_train, length = history_length, batch_size = batch_size)
 
@@ -119,7 +122,11 @@ for train_index, test_index in kf.split(X, Y):
     model = Sequential()
 
     # add model layers
-    model.add(GRU(units=200, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01), input_shape=(history_length, n_features)))
+    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True, input_shape=(history_length, n_features)))
+    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True)
+    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True)
+    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True)
+    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01))
     model.add(Dense(1,activation='sigmoid'))
     model.summary()
 
@@ -129,7 +136,6 @@ for train_index, test_index in kf.split(X, Y):
     # fit_generator works differently from fit: https://stackoverflow.com/questions/43457862/whats-the-difference-between-samples-per-epoch-and-steps-per-epoch-in-fit-g
     # So in order to use the whole dataset we need to calculate the exact number of steps per epoch in order to fully pass the entire dataset each epoch
     steps_epoch = math.floor((len(X_train) - history_length)/batch_size)
-
 
     # train model
     hist = model.fit_generator(
