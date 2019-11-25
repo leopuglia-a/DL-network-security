@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 import math
 import matplotlib.pyplot as plt
+import utils
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -57,28 +58,29 @@ def f1(y_true, y_pred):
 history_length = 50
 batch_size = 256
 epochs = 10
-n_features = 127
+n_features = 83
 
 # read in data using pandas
-df = pd.read_csv("dataset/final_dataset.csv")
+df = pd.read_csv("dataset/full-dataset.csv", low_memory=False)
+df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
+df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
+df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
-X = df.drop(columns=["PKT_CLASS"])
+df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float16)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float64)
 
-# Generating dummy variables
-cols = ["PKT_TYPE", "FLAGS", "NODE_NAME_FROM", "NODE_NAME_TO"]
+# Drop rows that have NA, NaN or Inf
+df.dropna(inplace=True)
+indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+df = df[indices_to_keep].astype(np.float64)
 
-for col in cols:
-    dummy = pd.get_dummies(X[col], drop_first=True)
-    X = X.drop(columns=[col])
-    X = pd.concat([X, dummy], axis=1)
+# Remove the Label output
+X = df.drop(['Label'], axis=1)
 
-
-# create a dataframe with only the target column as dummy variables
-Y = df[["PKT_CLASS"]]
-dummy = pd.get_dummies(Y["PKT_CLASS"])
-Y = Y.drop(columns=["PKT_CLASS"])
-Y = pd.concat([dummy], axis=1)
+# create a dataframe with only the target column
+Y = df['Label']
 
 # KFOLD
 seed = 7
@@ -117,11 +119,11 @@ for train_index, test_index in kf.split(X, Y):
 
     # add model layers
     model.add(GRU(units=200, dropout=0.2, recurrent_dropout=0.2, input_shape=(history_length, n_features)))
-    model.add(Dense(5,activation='softmax'))
+    model.add(Dense(1,activation='sigmoid'))
     model.summary()
 
     # compile model using mse as a measure of model performance
-    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy", f1])
+    model.compile(loss="binary_crossentropy", optimizer="adam", metrics=[f1])
 
     # fit_generator works differently from fit: https://stackoverflow.com/questions/43457862/whats-the-difference-between-samples-per-epoch-and-steps-per-epoch-in-fit-g
     # So in order to use the whole dataset we need to calculate the exact number of steps per epoch in order to fully pass the entire dataset each epoch
@@ -141,20 +143,11 @@ for train_index, test_index in kf.split(X, Y):
     generator = TimeseriesGenerator(X_test, Y_test, length = history_length, batch_size = batch_size)
     scores = model.evaluate_generator(generator, verbose=0)
     print(model.metrics_names)
-    print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
-    print("%s: %.2f%%" % (model.metrics_names[2], scores[2] * 100))
+    print("%s: %.4f" % (model.metrics_names[1], scores[1] * 100))
     count_kfold += 1
 
 
 plot_model(model, to_file='model.png')
-
-plt.plot(hist.history['accuracy'])
-plt.title('Model accuracy')
-plt.ylabel('Accuruacy')
-plt.xlabel('Epoch')
-plt.legend(['acc'], loc='upper right')
-plt.savefig('acc.png')
-# plt.show()
 
 plt.plot(hist.history['f1'])
 plt.title('Model f1')
