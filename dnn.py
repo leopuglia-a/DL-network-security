@@ -54,13 +54,13 @@ df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
 df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
-df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float16)
-df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float64)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
 # Drop rows that have NA, NaN or Inf
 df.dropna(inplace=True)
 indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-df = df[indices_to_keep].astype(np.float64)
+df = df[indices_to_keep].astype(np.float32)
 
 # Remove the Label output
 X = df.drop(['Label'], axis=1)
@@ -77,16 +77,14 @@ kf.get_n_splits(X)
 count_kfold = 1
 f1_scores = []
 
-scaler = preprocessing.StandardScaler()
-
 for train_index, test_index in kf.split(X, Y):
     X_train, X_test = X.iloc[train_index], X.iloc[test_index]
     Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
 
     # 1. Standardize as variáveis de X_train e X_test usando preprocessing.scale: https://scikit-learn.org/stable/modules/preprocessing.html
     # É sempre importante fazer as duas separadas pra evitar que o training tenha alguma ação sobre o testing
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.fit_transform(X_test)
+    X_train = preprocessing.scale(X_train)
+    X_test = preprocessing.scale(X_test)
 
     # create model
     print("\n\n")
@@ -95,32 +93,32 @@ for train_index, test_index in kf.split(X, Y):
     model = Sequential()
 
     # add model layers
-    model.add(Dense(2048, input_dim=83, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))) # 2. Regularization é uma forma de reduzir os weights resultantes, diminuindo a chance de overfit
+    model.add(Dense(2048, input_dim=83, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01))) # 2. Regularization é uma forma de reduzir os weights resultantes, diminuindo a chance de overfit
     model.add(BatchNormalization()) # 3. Batch norm é uma forma de standizar os pesos resultantes da layer pra melhorar a convergência
     model.add(Activation('relu'))
     model.add(Dropout(0.3)) # 4. Dropout é uma forma de evitar overfitting, adicionei camadas com 30% de dropout na rede inteira
 
-    model.add(Dense(1024, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(Dense(1024, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Dropout(0.3))
 
-    model.add(Dense(512, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(Dense(512, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Dropout(0.3))
 
-    model.add(Dense(256, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(Dense(256, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Dropout(0.3))
 
-    model.add(Dense(128, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(Dense(128, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Dropout(0.3))
 
-    model.add(Dense(64, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01)))
+    model.add(Dense(64, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(Dropout(0.3))
