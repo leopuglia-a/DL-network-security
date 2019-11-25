@@ -7,6 +7,7 @@ import tensorflow as tf
 import math
 import matplotlib.pyplot as plt
 import utils
+from sklearn import preprocessing
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -14,12 +15,12 @@ from sklearn.metrics import (
     recall_score,
     confusion_matrix,
 )
+from keras import backend as K
 from sklearn.model_selection import TimeSeriesSplit
 from keras.models import Sequential
 from keras.layers import Dense, Embedding, LSTM, Dropout
 from keras.optimizers import RMSprop
 from keras.preprocessing.sequence import TimeseriesGenerator
-from keras import backend, preprocessing
 from keras.utils import plot_model
 from keras.callbacks import CSVLogger
 from keras.layers.normalization import BatchNormalization
