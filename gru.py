@@ -126,9 +126,6 @@ for train_index, test_index in kf.split(X, Y):
 
     # add model layers
     model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True, input_shape=(history_length, n_features)))
-    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True))
-    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True))
-    model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), return_sequences=True))
     model.add(GRU(units=20, dropout=0.2, recurrent_dropout=0.2, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
     model.add(Dense(1,activation='sigmoid'))
     model.summary()
