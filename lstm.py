@@ -60,11 +60,12 @@ def f1(y_true, y_pred):
 
 history_length = 50
 batch_size = 256
-epochs = 10
+epochs = 5
 n_features = 83
 
 # read in data using pandas
-df = pd.read_csv("dataset/full-dataset.csv", low_memory=False)
+df = pd.read_csv("dataset/testing-syn.csv", low_memory=False)
+df = df.sample(frac=1).reset_index(drop=True)
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
 df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))

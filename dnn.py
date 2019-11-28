@@ -11,6 +11,8 @@ import datetime
 from keras.layers.normalization import BatchNormalization
 from keras.layers.core import Activation, Dropout
 from keras.regularizers import l2
+from keras.callbacks import CSVLogger
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 
@@ -63,88 +65,83 @@ indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
 df = df[indices_to_keep].astype(np.float32)
 
 # Remove the Label output
-X = df.drop(['Label'], axis=1)
+X_train = df.drop(['Label'], axis=1)
 
 # create a dataframe with only the target column
-Y = df['Label']
+# Y_train = df['Label']
 
-# KFOLD
-seed = 7
-np.random.seed(seed)
+Y_train = df[["Label"]]
+dummy = pd.get_dummies(Y_train["Label"])
+Y_train = Y_train.drop(columns=["Label"])
+Y_train = pd.concat([dummy], axis=1)
 
-kf = KFold(n_splits=5, shuffle=True, random_state=seed)
-kf.get_n_splits(X)
-count_kfold = 1
+
+# loggers
+csv_logger = CSVLogger('lstm.csv', append=True, separator=';')
 f1_scores = []
 
-for train_index, test_index in kf.split(X, Y):
-    X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-    Y_train, Y_test = Y.iloc[train_index], Y.iloc[test_index]
+scaler = preprocessing.StandardScaler()
 
-    # 1. Standardize as variáveis de X_train e X_test usando preprocessing.scale: https://scikit-learn.org/stable/modules/preprocessing.html
-    # É sempre importante fazer as duas separadas pra evitar que o training tenha alguma ação sobre o testing
-    X_train = preprocessing.scale(X_train)
-    X_test = preprocessing.scale(X_test)
+# 1. Standardize as variáveis de X_train e X_test usando preprocessing.scale: https://scikit-learn.org/stable/modules/preprocessing.html
+# É sempre importante fazer as duas separadas pra evitar que o training tenha alguma ação sobre o testing
+X_train = scaler.fit_transform(X_train)
 
-    # create model
-    print("\n\n")
-    print("========================")
-    print("kfold: ", count_kfold)
-    model = Sequential()
+# create model
+print("\n\n")
+print("============ STARTING TRAINING ============")
+model = Sequential()
 
-    # add model layers
-    model.add(Dense(2048, input_dim=83, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01))) # 2. Regularization é uma forma de reduzir os weights resultantes, diminuindo a chance de overfit
-    model.add(BatchNormalization()) # 3. Batch norm é uma forma de standizar os pesos resultantes da layer pra melhorar a convergência
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3)) # 4. Dropout é uma forma de evitar overfitting, adicionei camadas com 30% de dropout na rede inteira
+# add model layers
+model.add(Dense(2048, input_dim=83, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01))) # 2. Regularization é uma forma de reduzir os weights resultantes, diminuindo a chance de overfit
+model.add(BatchNormalization()) # 3. Batch norm é uma forma de standizar os pesos resultantes da layer pra melhorar a convergência
+model.add(Activation('relu'))
+model.add(Dropout(0.3)) # 4. Dropout é uma forma de evitar overfitting, adicionei camadas com 30% de dropout na rede inteira
 
-    model.add(Dense(1024, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
+model.add(Dense(1024, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
 
-    model.add(Dense(512, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
+model.add(Dense(512, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
 
-    model.add(Dense(256, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
+model.add(Dense(256, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
 
-    model.add(Dense(128, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
+model.add(Dense(128, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
 
-    model.add(Dense(64, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
+model.add(Dense(64, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+model.add(Dropout(0.3))
 
-    model.add(Dense(1, activation="sigmoid"))
-    model.summary()
+model.add(Dense( QTD_DE_CLASSES, activation="softmax"))
+model.summary()
 
-    # compile model using mse as a measure of model performance
-    model.compile(
-        loss="binary_crossentropy", optimizer="adam", metrics=[f1]
-    )
+# compile model using mse as a measure of model performance
+model.compile(
+    loss="binary_crossentropy", optimizer="adam", metrics=[f1]
+)
 
-    # train model
-    model.fit(
-        X_train,
-        Y_train,
-        batch_size=utils.batch_size,
-        verbose=1,
-        epochs=utils.epochs,
-    )
+# train model
+model.fit(
+    X_train,
+    Y_train,
+    batch_size=utils.batch_size,
+    verbose=1,
+    epochs=utils.epochs,
+)
 
-    scores = model.evaluate(X_test, Y_test, verbose=1)
-    print(model.metrics_names)
-    print("%s: %.4f" % (model.metrics_names[1], scores[1]))
-    f1_scores.append(scores[1])
-    count_kfold += 1
+scores = model.evaluate(X_test, Y_test, verbose=1)
+print(model.metrics_names)
+print("%s: %.4f" % (model.metrics_names[1], scores[1]))
 
 
 final_score = sum(f1_scores) / 5.0
