@@ -49,32 +49,74 @@ def f1(y_true, y_pred):
 
 
 # read in data using pandas
-df = pd.read_csv("dataset/full-dataset.csv", low_memory=False)
+
+training_files = [
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_DNS.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_LDAP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_MSSQL.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NetBIOS.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NTP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SNMP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SSDP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_UDP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/Syn.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/TFTP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/UDPLag.csv'
+]
+
+
+test_files = [
+'./dataset/testing/MSSQL.csv',
+'./dataset/testing/NetBIOS.csv',
+'./dataset/testing/Syn.csv',
+'./dataset/testing/UDP.csv',
+'./dataset/testing/UDPLag.csv',
+'./dataset/testing/Portmap.csv'
+]
+
+
+def concat(file1, file2):
+    print("reading file ", file2)
+    df = pd.read_csv(file2, skiprows=1, skipinitialspace=True, index_col=False, low_memory=False)
+    df.to_csv(file1, mode='a', index=False, header=False,)
+    del df
+
+
+df = pd.read_csv('/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_DNS.csv', skipinitialspace=True, low_memory=False)
+df.to_csv('./dataset/training-ds.csv', index=False)
+
+for f in training_files:
+    print(f)
+    concat('./dataset/training-ds.csv', f)
+    
+df = pd.read_csv('./dataset/training-ds.csv',low_memory=False)
+
+
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
-df['Label'] = df['Label'].apply(lambda x: utils.to_bin(x))
 
 # create a dataframe with all training data except the target column
 df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
 df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
 df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
-# Drop rows that have NA, NaN or Inf
-df.dropna(inplace=True)
-indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-df = df[indices_to_keep].astype(np.float32)
-
-# Remove the Label output
-X_train = df.drop(['Label'], axis=1)
-
-# create a dataframe with only the target column
-# Y_train = df['Label']
 
 Y_train = df[["Label"]]
 dummy = pd.get_dummies(Y_train["Label"])
 Y_train = Y_train.drop(columns=["Label"])
 Y_train = pd.concat([dummy], axis=1)
+Y_train["Portmap"] = 0
 
+X_train = df.drop(['Label'], axis=1)
+
+# Drop rows that have NA, NaN or Inf
+X_train.dropna(inplace=True)
+indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+X_train = X_train[indices_to_keep].astype(np.float32)
+
+# create a dataframe with only the target column
+
+print(Y_train)
 
 # loggers
 csv_logger = CSVLogger('lstm.csv', append=True, separator=';')
@@ -122,7 +164,7 @@ model.add(BatchNormalization())
 model.add(Activation('relu'))
 model.add(Dropout(0.3))
 
-model.add(Dense( QTD_DE_CLASSES, activation="softmax"))
+model.add(Dense(14, activation="softmax"))
 model.summary()
 
 # compile model using mse as a measure of model performance
@@ -139,11 +181,38 @@ model.fit(
     epochs=utils.epochs,
 )
 
+df = pd.read_csv('./dataset/testing/LDAP.csv', skipinitialspace=True, low_memory=False)
+df.to_csv('./dataset/testing-ds.csv', index=False)
+
+for f in test_files:
+    print(f)
+    concat('./dataset/testing-ds.csv', f)
+    
+df = pd.read_csv('./dataset/testing-ds.csv')
+
+df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
+df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
+
+# create a dataframe with all training data except the target column
+df = df.drop(['Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
+
+# Drop rows that have NA, NaN or Inf
+df.dropna(inplace=True)
+
+# Remove the Label output
+X_test = df.drop(['Label'], axis=1)
+
+# create a dataframe with only the target column
+
+Y_test = df[["Label"]]
+dummy = pd.get_dummies(Y_test["Label"])
+Y_test = Y_test.drop(columns=["Label"])
+Y_test = pd.concat([dummy], axis=1)
+
 scores = model.evaluate(X_test, Y_test, verbose=1)
+print("\n============= FINAL SCORE ============\n")
 print(model.metrics_names)
 print("%s: %.4f" % (model.metrics_names[1], scores[1]))
 
-
-final_score = sum(f1_scores) / 5.0
-print("============= FINAL SCORE ============")
-print(final_score)
