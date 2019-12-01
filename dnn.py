@@ -105,7 +105,6 @@ def concat(file, list):
 concat('./dataset/training-ds.csv', training_files)
     
 df = pd.read_csv('./dataset/training-ds.csv',low_memory=False)
-print(df.head())
 
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
@@ -119,12 +118,17 @@ df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 # Drop rows that have NA, NaN or Inf
 df.dropna(inplace=True)
 # indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-# indices_to_keep = pd.Series.drop()
 # df = df[indices_to_keep].astype(np.float32)
 
 X_train = df.drop(['Label'], axis=1)
 
+indices_to_keep = ~X_train.isin([np.nan, np.inf, -np.inf]).any(1)
+X_train = X_train[indices_to_keep].astype(np.float32)
+
+print(X_train)
+
 Y_train = df[["Label"]]
+Y_train = Y_train[indices_to_keep]
 dummy = pd.get_dummies(Y_train["Label"])
 Y_train = Y_train.drop(columns=["Label"])
 Y_train = pd.concat([dummy], axis=1)
