@@ -51,33 +51,33 @@ def f1(y_true, y_pred):
 
 # read in data using pandas
 
-# training_files = [
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_DNS.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_LDAP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_MSSQL.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NetBIOS.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NTP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SNMP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SSDP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_UDP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/Syn.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/TFTP.csv',
-# '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/UDPLag.csv'
-# ]
-
 training_files = [
-'./dataset/training/DrDoS_DNS.csv',
-'./dataset/training/DrDoS_LDAP.csv',
-'./dataset/training/DrDoS_MSSQL.csv',
-'./dataset/training/DrDoS_NetBIOS.csv',
-'./dataset/training/DrDoS_NTP.csv',
-'./dataset/training/DrDoS_SNMP.csv',
-'./dataset/training/DrDoS_SSDP.csv',
-'./dataset/training/DrDoS_UDP.csv',
-'./dataset/training/Syn.csv',
-'./dataset/training/TFTP.csv',
-'./dataset/training/UDPLag.csv'
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_DNS.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_LDAP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_MSSQL.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NetBIOS.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NTP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SNMP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SSDP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_UDP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/Syn.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/TFTP.csv',
+'/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/UDPLag.csv'
 ]
+
+# training_files = [
+# './dataset/training/DrDoS_DNS.csv',
+# './dataset/training/DrDoS_LDAP.csv',
+# './dataset/training/DrDoS_MSSQL.csv',
+# './dataset/training/DrDoS_NetBIOS.csv',
+# './dataset/training/DrDoS_NTP.csv',
+# './dataset/training/DrDoS_SNMP.csv',
+# './dataset/training/DrDoS_SSDP.csv',
+# './dataset/training/DrDoS_UDP.csv',
+# './dataset/training/Syn.csv',
+# './dataset/training/TFTP.csv',
+# './dataset/training/UDPLag.csv'
+# ]
 
 
 testing_files = [
@@ -218,7 +218,7 @@ model.summary()
 
 # compile model using mse as a measure of model performance
 model.compile(
-    loss="binary_crossentropy", optimizer="adam", metrics=[f1]
+    loss="categorical_crossentropy", optimizer="adam", metrics=[f1]
 )
 
 # train model
