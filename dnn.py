@@ -171,7 +171,6 @@ model.summary()
 
 model.compile(
     loss="categorical_crossentropy", optimizer="adam", metrics=['accuracy', f1]
-)
 
 model.fit(
     X_train,
