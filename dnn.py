@@ -10,15 +10,15 @@ import numpy as np
 import pandas as pd
 import utils
 import datetime
-
 from sklearn import preprocessing
 from sklearn.model_selection import KFold
-
+from matplotlib import pyplot as plt
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Dense, BatchNormalization, Activation, Dropout
+from tensorflow.keras.layers import Dense, BatchNormalization, Activation, Dropout, LeakyReLU
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import CSVLogger
+from tensorflow.keras import optimizers
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
@@ -27,36 +27,36 @@ csv_logger = CSVLogger('dnn.csv', append=True, separator=';')
 
 
 #### F1 Function ####
+def recall(y_true, y_pred):
+    """Recall metric.
+
+    Only computes a batch-wise average of recall.
+
+    Computes the recall, a metric for multi-label classification of
+    how many relevant items are selected.
+    """
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+    recall = true_positives / (possible_positives + K.epsilon())
+    return recall
+
+def precision(y_true, y_pred):
+    """Precision metric.
+
+    Only computes a batch-wise average of precision.
+
+    Computes the precision, a metric for multi-label classification of
+    how many selected items are relevant.
+    """
+    true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+    precision = true_positives / (predicted_positives + K.epsilon())
+    return precision
+
 def f1(y_true, y_pred):
-    def recall(y_true, y_pred):
-        """Recall metric.
-
-        Only computes a batch-wise average of recall.
-
-        Computes the recall, a metric for multi-label classification of
-        how many relevant items are selected.
-        """
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
-        recall = true_positives / (possible_positives + K.epsilon())
-        return recall
-
-    def precision(y_true, y_pred):
-        """Precision metric.
-
-        Only computes a batch-wise average of precision.
-
-        Computes the precision, a metric for multi-label classification of
-        how many selected items are relevant.
-        """
-        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
-        precision = true_positives / (predicted_positives + K.epsilon())
-        return precision
-
-    precision = precision(y_true, y_pred)
-    recall = recall(y_true, y_pred)
-    return 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+    prec = precision(y_true, y_pred)
+    rec = recall(y_true, y_pred)
+    return 2*((prec*rec)/(prec+rec+K.epsilon()))
 
 
 #### Data training merge ####
@@ -64,10 +64,10 @@ def concat(file, list):
     for index, f in enumerate(list):
         print("reading file ", f)
         if index == 0:
-            df = pd.read_csv(f, skipinitialspace=True, low_memory=False, nrows=100000)
+            df = pd.read_csv(f, skipinitialspace=True, low_memory=False, nrows=500000)
             df.to_csv(file, index=False)
         else:
-            df = pd.read_csv(f, skiprows=1, skipinitialspace=True, low_memory=False, nrows=100000)
+            df = pd.read_csv(f, skiprows=1, skipinitialspace=True, low_memory=False, nrows=500000)
             df.to_csv(file, mode='a', index=False, header=False)
 
 
@@ -146,42 +146,52 @@ model = Sequential()
 # model.add(Activation('relu'))
 # model.add(Dropout(0.3))
 
-model.add(Dense(512, input_dim=81, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
+model.add(Dense(512, input_dim=81, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), kernel_initializer='he_uniform' ))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-model.add(Dropout(0.3))
+model.add(Dropout(0.2))
 
 model.add(Dense(256, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-model.add(Dropout(0.3))
+model.add(Dropout(0.2))
 
 model.add(Dense(128, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-model.add(Dropout(0.3))
+model.add(Dropout(0.2))
 
 model.add(Dense(64, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-model.add(Dropout(0.3))
+model.add(Dropout(0.2))
 
 model.add(Dense(13, activation="softmax"))
 model.summary()
 
-model.compile(
-    loss="categorical_crossentropy", optimizer="adam", metrics=['accuracy', f1]
+opt = optimizers.Adam(learning_rate=0.0002, beta_1=0.9, beta_2=0.999, amsgrad=True)
 
-model.fit(
+model.compile(
+    loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
+)
+history = model.fit(
     X_train,
     Y_train,
-    batch_size=256,
+    batch_size=128,
     verbose=1,
-    epochs=5,
+    epochs=50,
 )
 
 
 
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['precision'])
+plt.plot(history.history['recall'])
+plt.plot(history.history['f1'])
+plt.title('Model f1')
+plt.xlabel('Epoch')
+plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
+plt.savefig('dnn.png')
 
 ######### AINDA NÃO MEXI NO TESTE FINAL #########
 
