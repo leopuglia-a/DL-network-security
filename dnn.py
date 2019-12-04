@@ -179,30 +179,31 @@ print("============ STARTING TRAINING ============")
 model = Sequential()
 
 
-model.add(Dense(512, input_dim=81, kernel_initializer='he_uniform' ))
+model.add(Dense(512, input_dim=81))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-# model.add(Dropout(0.2))
+model.add(Dropout(0.01))
 
 model.add(Dense(256))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-# model.add(Dropout(0.2))
+model.add(Dropout(0.01))
 
 model.add(Dense(128))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-# model.add(Dropout(0.2))
+model.add(Dropout(0.01))
 
 model.add(Dense(64))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
-# model.add(Dropout(0.2))
+model.add(Dropout(0.01))
 
+# kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
 model.add(Dense(13, activation="softmax"))
 model.summary()
 
-opt = optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=True)
+opt = optimizers.Adam(learning_rate=0.0001)
 
 model.compile(
     loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
@@ -210,9 +211,9 @@ model.compile(
 history = model.fit(
     X_train,
     Y_train,
-    batch_size=256,
+    batch_size=128,
     verbose=1,
-    epochs=5,
+    epochs=10,
 )
 
 
