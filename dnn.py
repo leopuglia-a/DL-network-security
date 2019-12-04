@@ -23,7 +23,7 @@ from tensorflow.keras import optimizers
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
-csv_logger = CSVLogger('dnn.csv', append=True, separator=';')
+csv_logger = CSVLogger('dnn2.csv', append=True, separator=';')
 
 
 #### F1 Function ####
@@ -105,6 +105,9 @@ df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 # Remove columns that don't add useful information
 df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
 
+# # Convert Timestamp column to usable values 
+# df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
+
 # Cast the variables to correct types
 df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
 df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
@@ -131,108 +134,27 @@ Y_train = Y_train.values
 scaler = preprocessing.StandardScaler()
 X_train = scaler.fit_transform(X_train)
 
-# Create the sequential model
-print("\n\n")
-print("============ STARTING TRAINING ============")
-model = Sequential()
+# del df
 
-# model.add(Dense(2048, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-# model.add(BatchNormalization())
-# model.add(Activation('relu'))
-# model.add(Dropout(0.3))
-
-# model.add(Dense(1024, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-# model.add(BatchNormalization())
-# model.add(Activation('relu'))
-# model.add(Dropout(0.3))
-
-model.add(Dense(512, input_dim=81, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01), kernel_initializer='he_uniform' ))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-
-model.add(Dense(256, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-
-model.add(Dense(128, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-
-model.add(Dense(64, kernel_regularizer=l2(0.01), activity_regularizer=l2(0.01)))
-model.add(BatchNormalization())
-model.add(Activation('relu'))
-model.add(Dropout(0.2))
-
-model.add(Dense(13, activation="softmax"))
-model.summary()
-
-opt = optimizers.Adam(learning_rate=0.0002, beta_1=0.9, beta_2=0.999, amsgrad=True)
-
-model.compile(
-    loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
-)
-history = model.fit(
-    X_train,
-    Y_train,
-    batch_size=128,
-    verbose=1,
-    epochs=50,
-)
-
-
-
-plt.plot(history.history['accuracy'])
-plt.plot(history.history['precision'])
-plt.plot(history.history['recall'])
-plt.plot(history.history['f1'])
-plt.title('Model f1')
-plt.xlabel('Epoch')
-plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
-plt.savefig('dnn.png')
-
-######### AINDA NÃO MEXI NO TESTE FINAL #########
-
-
-# scores = model.evaluate(X_test, Y_test, verbose=1)
-# print("\n============= FINAL SCORE ============\n")
-# print(model.metrics_names)
-# print("%s: %.4f" % (model.metrics_names[1], scores[1]))
-
-
-
-
-
-
-
-
-
-# concat('./dataset/testing-ds.csv', testing_files)
-
-# df = pd.read_csv('./dataset/testing-ds.csv', low_memory=False)
+# # concat('./dataset/testing-ds.csv', testing_files)
+# df = pd.read_csv('./dataset/testing-ds.csv',low_memory=False)
 
 # df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
-# #df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
 
-# # create a dataframe with all training data except the target column
-# df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
+# df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+
+# # Convert Timestamp column to usable values 
+# df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
+
 # df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
 # df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
-# # Drop rows that have NA, NaN or Inf
 # df.dropna(inplace=True)
 
-# # Remove the Label output
-# X_test = df.drop(['Label'], axis=1)
-# X_test.dropna(inplace=True)
-# indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-# X_test = X_test[indices_to_keep].astype(np.float32)
-
-# # create a dataframe with only the target column
+# df = df.sample(frac=1).reset_index(drop=True)
 # Y_test = df[["Label"]]
-# Y_test = Y_test[indices_to_keep]
+# X_test = df.drop(['Label'], axis=1).values
+
 # dummy = pd.get_dummies(Y_test["Label"])
 # Y_test = Y_test.drop(columns=["Label"])
 # Y_test = pd.concat([dummy], axis=1)
@@ -246,3 +168,82 @@ plt.savefig('dnn.png')
 # Y_test.insert(10, 'TFTP', 0)
 # Y_test.insert(11, 'UDP-lag', 0)
 # Y_test.insert(12, 'WebDDoS', 0)
+
+# print(Y_test)
+# Y_test = Y_test.values
+
+
+# Create the sequential model
+print("\n\n")
+print("============ STARTING TRAINING ============")
+model = Sequential()
+
+
+model.add(Dense(512, input_dim=81, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001), kernel_initializer='he_uniform' ))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+# model.add(Dropout(0.2))
+
+model.add(Dense(256, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+# model.add(Dropout(0.2))
+
+model.add(Dense(128, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+# model.add(Dropout(0.2))
+
+model.add(Dense(64, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(BatchNormalization())
+model.add(Activation('relu'))
+# model.add(Dropout(0.2))
+
+model.add(Dense(13, activation="softmax"))
+model.summary()
+
+opt = optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=True)
+
+model.compile(
+    loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
+)
+history = model.fit(
+    X_train,
+    Y_train,
+    batch_size=128,
+    verbose=1,
+    epochs=5,
+)
+
+
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['precision'])
+plt.plot(history.history['recall'])
+plt.plot(history.history['f1'])
+plt.title('Model f1')
+plt.xlabel('Epoch')
+plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
+plt.savefig('dnn2.png')
+
+
+
+
+
+
+# scores = model.evaluate(X_test, Y_test, verbose=1)
+# print("\n============= FINAL SCORE ============\n")
+# print(model.metrics_names)
+# print("%s: %.4f" % (model.metrics_names[0], scores[0]))
+# print("%s: %.4f" % (model.metrics_names[1], scores[1]))
+# print("%s: %.4f" % (model.metrics_names[2], scores[2]))
+# print("%s: %.4f" % (model.metrics_names[3], scores[3]))
+
+# plt.plot(history.history['accuracy'])
+# plt.plot(history.history['precision'])
+# plt.plot(history.history['recall'])
+# plt.plot(history.history['f1'])
+# plt.title('Model f1')
+# plt.xlabel('Epoch')
+# plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
+# plt.savefig('dnn-test.png')
