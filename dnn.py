@@ -9,7 +9,6 @@ import os
 import numpy as np
 import pandas as pd
 import utils
-import datetime
 from sklearn import preprocessing
 from sklearn.model_selection import KFold
 from matplotlib import pyplot as plt
@@ -90,8 +89,9 @@ testing_files = [
     './dataset/testing/MSSQL.csv',
     './dataset/testing/NetBIOS.csv',
     './dataset/testing/Syn.csv',
-    './dataset/testing/Portmap.csv'
 ]
+
+csv_logger = CSVLogger('dnn.csv', append=True, separator=';')
 
 # concat('./dataset/training-ds.csv', training_files)
 
@@ -128,50 +128,49 @@ Y_train = df[["Label"]]
 dummy = pd.get_dummies(Y_train["Label"])
 Y_train = Y_train.drop(columns=["Label"])
 Y_train = pd.concat([dummy], axis=1)
+print(Y_train)
 Y_train = Y_train.values
 
 # Standardize the input variables
 scaler = preprocessing.StandardScaler()
 X_train = scaler.fit_transform(X_train)
 
-# del df
 
-# # concat('./dataset/testing-ds.csv', testing_files)
-# df = pd.read_csv('./dataset/testing-ds.csv',low_memory=False)
+# concat('./dataset/testing-ds.csv', testing_files)
+df = pd.read_csv('./dataset/testing-ds.csv',low_memory=False)
 
-# df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
+df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 
-# df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP'], axis=1)
+df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
 
-# # Convert Timestamp column to usable values 
+# Convert Timestamp column to usable values 
 # df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
 
-# df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
-# df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
+df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
-# df.dropna(inplace=True)
+df.dropna(inplace=True)
 
-# df = df.sample(frac=1).reset_index(drop=True)
-# Y_test = df[["Label"]]
-# X_test = df.drop(['Label'], axis=1).values
+df = df.sample(frac=1).reset_index(drop=True)
+Y_test = df[["Label"]]
+X_test = df.drop(['Label'], axis=1).values
 
-# dummy = pd.get_dummies(Y_test["Label"])
-# Y_test = Y_test.drop(columns=["Label"])
-# Y_test = pd.concat([dummy], axis=1)
-# Y_test.columns = ['BENIGN', 'DrDoS_LDAP', 'DrDoS_MSSQL', 'DrDoS_NetBIOS', 'Portmap', 'Syn']
-# Y_test = Y_test[['BENIGN', 'DrDoS_LDAP', 'DrDoS_MSSQL', 'DrDoS_NetBIOS', 'Syn', 'Portmap']]
-# Y_test.insert(1, 'DrDoS_DNS', 0)
-# Y_test.insert(4, 'DrDoS_NTP', 0)
-# Y_test.insert(6, 'DrDoS_SNMP', 0)
-# Y_test.insert(7, 'DrDoS_SSDP', 0)
-# Y_test.insert(8, 'DrDoS_UDP', 0)
-# Y_test.insert(10, 'TFTP', 0)
-# Y_test.insert(11, 'UDP-lag', 0)
-# Y_test.insert(12, 'WebDDoS', 0)
+dummy = pd.get_dummies(Y_test["Label"])
+Y_test = Y_test.drop(columns=["Label"])
+Y_test = pd.concat([dummy], axis=1)
+Y_test.columns = ['BENIGN', 'DrDoS_LDAP', 'DrDoS_MSSQL', 'DrDoS_NetBIOS', 'Syn']
+Y_test = Y_test[['BENIGN', 'DrDoS_LDAP', 'DrDoS_MSSQL', 'DrDoS_NetBIOS', 'Syn']]
+Y_test.insert(1, 'DrDoS_DNS', 0)
+Y_test.insert(4, 'DrDoS_NTP', 0)
+Y_test.insert(6, 'DrDoS_SNMP', 0)
+Y_test.insert(7, 'DrDoS_SSDP', 0)
+Y_test.insert(8, 'DrDoS_UDP', 0)
+Y_test.insert(10, 'TFTP', 0)
+Y_test.insert(11, 'UDP-lag', 0)
+Y_test.insert(12, 'WebDDoS', 0)
 
-# print(Y_test)
-# Y_test = Y_test.values
-
+print(Y_test)
+Y_test = Y_test.values
 
 # Create the sequential model
 print("\n\n")
@@ -203,7 +202,7 @@ model.add(Dropout(0.01))
 model.add(Dense(13, activation="softmax"))
 model.summary()
 
-opt = optimizers.Adam(learning_rate=0.0001)
+opt = optimizers.Adam(learning_rate=0.00001)
 
 model.compile(
     loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
@@ -211,11 +210,13 @@ model.compile(
 history = model.fit(
     X_train,
     Y_train,
-    batch_size=128,
+    batch_size=512,
     verbose=1,
-    epochs=10,
+    epochs=5,
+    callbacks=[csv_logger]
 )
 
+scores = model.evaluate(X_test, Y_test, verbose=1)
 
 
 plt.plot(history.history['accuracy'])
@@ -225,14 +226,13 @@ plt.plot(history.history['f1'])
 plt.title('Model f1')
 plt.xlabel('Epoch')
 plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
-plt.savefig('dnn2.png')
+plt.savefig('dnn3.png')
 
 
 
 
 
 
-# scores = model.evaluate(X_test, Y_test, verbose=1)
 # print("\n============= FINAL SCORE ============\n")
 # print(model.metrics_names)
 # print("%s: %.4f" % (model.metrics_names[0], scores[0]))
