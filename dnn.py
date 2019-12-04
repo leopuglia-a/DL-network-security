@@ -179,22 +179,22 @@ print("============ STARTING TRAINING ============")
 model = Sequential()
 
 
-model.add(Dense(512, input_dim=81, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001), kernel_initializer='he_uniform' ))
+model.add(Dense(512, input_dim=81, kernel_initializer='he_uniform' ))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
 # model.add(Dropout(0.2))
 
-model.add(Dense(256, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(Dense(256))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
 # model.add(Dropout(0.2))
 
-model.add(Dense(128, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(Dense(128))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
 # model.add(Dropout(0.2))
 
-model.add(Dense(64, kernel_regularizer=l2(0.001), activity_regularizer=l2(0.001)))
+model.add(Dense(64))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
 # model.add(Dropout(0.2))
@@ -210,7 +210,7 @@ model.compile(
 history = model.fit(
     X_train,
     Y_train,
-    batch_size=128,
+    batch_size=256,
     verbose=1,
     epochs=5,
 )
