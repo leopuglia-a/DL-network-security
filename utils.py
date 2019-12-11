@@ -13,4 +13,4 @@ def date_str_to_ms(date_time_str):
 
 
 batch_size = 128
-epochs = 10
+epochs = 5

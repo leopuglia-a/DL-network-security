@@ -17,12 +17,14 @@ from tensorflow.keras.layers import Dense, BatchNormalization, Activation, Dropo
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import CSVLogger
+from tensorflow.keras.utils import plot_model
 from tensorflow.keras import optimizers
+
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
-csv_logger = CSVLogger('dnn2.csv', append=True, separator=';')
+csv_logger = CSVLogger('log-dnn.csv', append=True, separator=';')
 
 
 #### F1 Function ####
@@ -59,10 +61,10 @@ def concat(file, list):
     for index, f in enumerate(list):
         print("reading file ", f)
         if index == 0:
-            df = pd.read_csv(f, skipinitialspace=True, low_memory=False, nrows=100000)
+            df = pd.read_csv(f, skipinitialspace=True, low_memory=False, nrows=1000000)
             df.to_csv(file, index=False)
         else:
-            df = pd.read_csv(f, skiprows=1, skipinitialspace=True, low_memory=False, nrows=100000)
+            df = pd.read_csv(f, skiprows=1, skipinitialspace=True, low_memory=False, nrows=1000000)
             df.to_csv(file, mode='a', index=False, header=False)
 
 
@@ -80,17 +82,29 @@ training_files = [
     './dataset/training/UDPLag.csv'
 ]
 
+full_training_files = [
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_DNS.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_LDAP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_MSSQL.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NetBIOS.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_NTP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SNMP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_SSDP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/DrDoS_UDP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/Syn.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/TFTP.csv',
+    '/mnt/ea4524be-1f99-458a-8bbf-13ab4dab310b/training-day(01-12)/UDPLag.csv'
+]
 testing_files = [
     './dataset/testing/LDAP.csv',
     './dataset/testing/MSSQL.csv',
     './dataset/testing/NetBIOS.csv',
     './dataset/testing/Syn.csv',
 ]
+csv_logger = CSVLogger('dnn2-log.csv', append=True, separator=';')
 
-csv_logger = CSVLogger('dnn.csv', append=True, separator=';')
-
-# concat('./dataset/training-ds.csv', training_files)
-# concat('./dataset/testing-ds.csv', testing_files)
+# concat('./dataset/training-concat.csv', full_training_files)
+# concat('./dataset/testing-concat.csv', testing_files)
 
 
 #### Read data training ####
@@ -100,22 +114,22 @@ df = pd.read_csv('./dataset/training-ds.csv',low_memory=False)
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 
 # Remove columns that don't add useful information
-df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
+# df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
 
 # # Convert Timestamp column to usable values
 # df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
 
-# Cast the variables to correct types
-df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
-df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
+# # Cast the variables to correct types
+# df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+# df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
-# Drop rows that have NA, NaN or Inf
-df.dropna(inplace=True)
-indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-df = df[indices_to_keep]
+# # Drop rows that have NA, NaN or Inf
+# df.dropna(inplace=True)
+# indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+# df = df[indices_to_keep]
 
-# Shuffle the dataset
-df = df.sample(frac=1).reset_index(drop=True)
+# # Shuffle the dataset
+# df = df.sample(frac=1).reset_index(drop=True)
 
 # Extract the train columns and convert it to a plain numpy array
 X_train = df.drop(['Label'], axis=1).values
@@ -138,7 +152,7 @@ print("============ STARTING TRAINING ============")
 model = Sequential()
 
 
-model.add(Dense(512, input_dim=81))
+model.add(Dense(512, input_dim=82))
 model.add(BatchNormalization())
 model.add(Activation('relu'))
 model.add(Dropout(0.01))
@@ -160,8 +174,9 @@ model.add(Dropout(0.01))
 
 model.add(Dense(13, activation="softmax"))
 model.summary()
+plot_model(model, to_file='model_dnn.png', show_shapes=True)
 
-opt = optimizers.Adam(learning_rate=0.00001)
+opt = optimizers.Adam(learning_rate=0.0005)
 
 model.compile(
     loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
@@ -170,48 +185,37 @@ model.compile(
 history = model.fit(
     X_train,
     Y_train,
-    batch_size=512,
+    batch_size=256,
     verbose=1,
-    epochs=5,
+    epochs=50,
     callbacks=[csv_logger]
 )
-
-# plt.plot(history.history['accuracy'])
-# plt.plot(history.history['precision'])
-# plt.plot(history.history['recall'])
-# plt.plot(history.history['f1'])
-# plt.title('Model f1')
-# plt.xlabel('Epoch')
-# plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
-# plt.savefig('dnn3.png')
-
-
 
 
 
 #### Testing ####
-df = pd.read_csv('./dataset/testing-ds.csv',low_memory=False)
+df = pd.read_csv('./dataset/testing-ds.csv',low_memory=False, )
 
 # Sanity check empty entries
 df.columns = (df.columns.str.replace("^ ", "")).str.replace(" $", "")
 
 # Remove columns that don't add useful information
-df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
+# df = df.drop(['Unnamed: 0', 'Flow ID', 'Source IP', 'Destination IP', 'SimillarHTTP', 'Timestamp'], axis=1)
 
 # # Convert Timestamp column to usable values
 # df['Timestamp'] = df['Timestamp'].apply(lambda x: utils.date_str_to_ms(x))
 
-# Cast the variables to correct types
-df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
-df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
+# # Cast the variables to correct types
+# df['Flow Bytes/s'] = df['Flow Bytes/s'].astype(np.float32)
+# df['Flow Packets/s'] = df['Flow Packets/s'].astype(np.float32)
 
-# Drop rows that have NA, NaN or Inf
-df.dropna(inplace=True)
-indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
-df = df[indices_to_keep]
+# # Drop rows that have NA, NaN or Inf
+# df.dropna(inplace=True)
+# indices_to_keep = ~df.isin([np.nan, np.inf, -np.inf]).any(1)
+# df = df[indices_to_keep]
 
-# Shuffle the dataset
-df = df.sample(frac=1).reset_index(drop=True)
+# # Shuffle the dataset
+# df = df.sample(frac=1).reset_index(drop=True)
 
 # Extract the test columns and convert it to a plain numpy array
 X_test = df.drop(['Label'], axis=1).values
@@ -235,5 +239,15 @@ Y_test = Y_test.values
 # Standardize the input variables
 scaler = preprocessing.StandardScaler()
 X_test = scaler.fit_transform(X_test)
+Y_test = scaler.fit_transform(Y_test)
 
-scores = model.evaluate(X_test, Y_test, verbose=0)
+scores = model.evaluate(X_test, Y_test, verbose=1)
+
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['precision'])
+plt.plot(history.history['recall'])
+plt.plot(history.history['f1'])
+plt.title('Model f1')
+plt.xlabel('Epoch')
+plt.legend(['accuracy', 'precision', 'recall', 'f1'], loc='lower right')
+plt.savefig('dnn3-training.png')

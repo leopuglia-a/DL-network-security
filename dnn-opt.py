@@ -144,22 +144,31 @@ def gen_dataset():
 index = 1
 
 def generate_arrays_from_file(file, batch_size, lb):
-    
+    X1 = pd.DataFrame()
+    Y1 = pd.DataFrame()
     while True:
         global index
 
-        df = dt.fread(file, max_nrows=batch_size, skip_to_line=index)
+        scaler = preprocessing.StandardScaler()
 
+        df = pd.read_csv(file, skipinitialspace=True, skiprows=index, nrows=batch_size)
+        # df = dt.fread(file, max_nrows=batch_size, skip_to_line=index)
+        # df = df.to_pandas()
 
-        df = df.to_pandas()
         Y = df.iloc[:, -1]
         X = df.drop(df.columns[[0, -1]], axis=1).astype(np.float64)
+        # X1 = pd.concat([X1, X], sort=False)
         dummy = pd.get_dummies(Y)
         
         Y = pd.concat([dummy], axis=1)
-                
+        Y1 = pd.concat([Y1, Y], sort=False)
+        Y1 = Y1.fillna(0)
+        Y1 = Y1.iloc[:256, :]
+        Y = lb.fit_transform(Y1)
+
         index = index + batch_size
-        yield (X.values, Y.values)
+
+        yield (X, Y)
 
 
 
@@ -206,7 +215,7 @@ TRAIN_CSV = "./dataset/training-ds.csv"
 # TEST_CSV = "./dataset/testing-ds.csv"
  
 # # initialize the number of epochs to train for and batch size
-# NUM_EPOCHS = 5
+NUM_EPOCHS = 5
 BS = 256
  
 # # initialize the total number of training and testing image
@@ -301,8 +310,8 @@ model.add(Dropout(0.01))
 model.add(Dense(13, activation="softmax"))
 model.summary()
 
-opt = optimizers.Adam(learning_rate=0.01)
-# opt = optimizers.SGD(lr=0.0001, momentum=0.9, decay=1e-2 / NUM_EPOCHS)
+# opt = optimizers.Adam(learning_rate=0.01)
+opt = optimizers.SGD(lr=0.001, momentum=0.9, decay=1e-2 / NUM_EPOCHS)
 
 model.compile(
     loss="categorical_crossentropy", optimizer=opt, metrics=['accuracy', precision, recall, f1]
@@ -311,9 +320,9 @@ model.compile(
 
 history = model.fit_generator(
     trainGen,
-    steps_per_epoch= NUM_TRAIN // BS,
+    steps_per_epoch= BS,
     verbose=1,
-    epochs=10,
+    epochs=5,
 )
 
 # # plt.plot(history.history['accuracy'])
